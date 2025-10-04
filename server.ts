@@ -99,19 +99,20 @@ async function createDefaultAdmin() {
 app.get('/', (req, res) => res.send('API is running'));
 
 // Register User
-app.post('/register', async (req, res) => {
-  const { name, email, password } = req.body;
-  if (!name || !email || !password) return res.status(400).json({ message: 'Missing fields' });
-
+app.post('/register', upload.single('profile_image'), async (req: any, res) => {
   try {
+    const { name, email, password } = req.body; // ตอนนี้ req.body จะมีค่าแล้ว
+    if (!name || !email || !password) return res.status(400).json({ message: 'Missing fields' });
+
     const [existing] = await db.query('SELECT * FROM user_gameshop_web WHERE email = ?', [email]);
     if ((existing as any).length > 0) return res.status(400).json({ message: 'Email already exists' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const profile_image = req.file ? `/uploads/${req.file.filename}` : null;
 
     await db.query(
-      'INSERT INTO user_gameshop_web (name, email, password, role) VALUES (?, ?, ?, ?)',
-      [name, email, hashedPassword, 'user']
+      'INSERT INTO user_gameshop_web (name, email, password, role, profile_image) VALUES (?, ?, ?, ?, ?)',
+      [name, email, hashedPassword, 'user', profile_image]
     );
 
     res.json({ message: 'User registered successfully' });
