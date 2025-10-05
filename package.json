@@ -1,6 +1,7 @@
 {
   "name": "game-shop-api",
   "version": "1.0.0",
+  "description": "",
   "main": "dist/server.js",
   "scripts": {
     "dev": "nodemon server.ts",
@@ -8,6 +9,9 @@
     "start": "node dist/server.js",
     "prepare": "npm run build"
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "type": "commonjs",
   "dependencies": {
     "bcryptjs": "^3.0.2",
