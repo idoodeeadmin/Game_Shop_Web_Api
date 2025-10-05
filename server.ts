@@ -96,7 +96,7 @@ async function createDefaultAdmin() {
 // ------------------- Routes -------------------
 
 // Test
-app.get('/', (req, res) => res.send('API is running'));
+app.get('/', (req, res) => res.send('Hello World! YoYo'));
 
 // Register
 app.post('/register', upload.single('profile_image'), async (req: any, res) => {
