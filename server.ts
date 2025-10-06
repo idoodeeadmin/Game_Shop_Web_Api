@@ -9,7 +9,10 @@ import path from 'path';
 import fs from 'fs';
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:4200';
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const isProduction = NODE_ENV === 'production';
 
 // ------------------- Session types -------------------
 declare module 'express-session' {
@@ -20,7 +23,10 @@ declare module 'express-session' {
 }
 
 // ------------------- Middleware -------------------
-app.use(cors({ origin: 'http://localhost:4200', credentials: true }));
+app.use(cors({
+  origin: FRONTEND_URL,
+  credentials: true
+}));
 app.use(bodyParser.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -29,7 +35,12 @@ app.use(
     secret: 'secret-key',
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 1000 * 60 * 60 } // 1 ชั่วโมง
+    cookie: {
+      maxAge: 1000 * 60 * 60,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      httpOnly: true
+    }
   })
 );
 
@@ -48,10 +59,10 @@ const upload = multer({ storage });
 
 // ------------------- MySQL Pool -------------------
 const db = mysql.createPool({
-  host: '202.28.34.203',
-  user: 'mb68_66011212155',
-  password: 'uKayQT6Ly2i(',
-  database: 'mb68_66011212155',
+  host: process.env.DB_HOST || '202.28.34.203',
+  user: process.env.DB_USER || 'mb68_66011212155',
+  password: process.env.DB_PASS || 'uKayQT6Ly2i(',
+  database: process.env.DB_NAME || 'mb68_66011212155',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
@@ -63,40 +74,10 @@ function authMiddleware(req: any, res: any, next: any) {
   next();
 }
 
-// ------------------- Admin Middleware -------------------
-function adminMiddleware(req: any, res: any, next: any) {
-  if (req.session.role !== 'admin') return res.status(403).json({ message: 'Forbidden' });
-  next();
-}
-
-// ------------------- Create default admin -------------------
-async function createDefaultAdmin() {
-  try {
-    const [rows] = await db.query('SELECT * FROM user_gameshop_web WHERE role = ?', ['admin']);
-    if ((rows as any).length === 0) {
-      const name = 'Admin';
-      const email = 'admin@example.com';
-      const password = 'admin123';
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      await db.query(
-        'INSERT INTO user_gameshop_web (name, email, password, role) VALUES (?, ?, ?, ?)',
-        [name, email, hashedPassword, 'admin']
-      );
-
-      console.log('Default admin created: admin@example.com / admin123');
-    } else {
-      console.log('Admin already exists');
-    }
-  } catch (err) {
-    console.error('Error creating default admin:', err);
-  }
-}
-
 // ------------------- Routes -------------------
 
 // Test
-app.get('/', (req, res) => res.send('Hello World! YoYo'));
+app.get('/', (req, res) => res.send('Hello World!'));
 
 // Register
 app.post('/register', upload.single('profile_image'), async (req: any, res) => {
@@ -138,7 +119,12 @@ app.post('/login', async (req, res) => {
     req.session.userId = user.id;
     req.session.role = user.role;
 
-    res.json({ message: 'Login successful', role: user.role });
+    res.json({
+      message: 'Login successful',
+      role: user.role,
+      id: user.id,
+      name: user.name
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
@@ -155,15 +141,10 @@ app.get('/me', authMiddleware, async (req: any, res) => {
     const user = (rows as any)[0];
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // wallet demo
     user.walletBalance = 0.98;
 
-    // full URL for Angular
-    if (user.profile_image) {
-      user.profile_image = `http://localhost:${PORT}${user.profile_image}`;
-    } else {
-      user.profile_image = '/assets/default-avatar.png';
-    }
+    const host = isProduction ? process.env.BACKEND_URL : `http://localhost:${PORT}`;
+    user.profile_image = user.profile_image ? `${host}${user.profile_image}` : '/assets/default-avatar.png';
 
     res.json(user);
   } catch (err) {
@@ -204,8 +185,7 @@ app.post('/logout', authMiddleware, (req: any, res) => {
   });
 });
 
-// ------------------- Start server -------------------
+// Start server
 app.listen(PORT, async () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  await createDefaultAdmin();
+  console.log(`Server running on port ${PORT}`);
 });
