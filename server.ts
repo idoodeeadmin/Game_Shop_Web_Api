@@ -9,10 +9,10 @@ import path from 'path';
 import fs from 'fs';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:4200';
-const NODE_ENV = process.env.NODE_ENV || 'development';
-const isProduction = NODE_ENV === 'production';
+const PORT = 3000;
+const FRONTEND_URL = 'http://localhost:4200'; // หรือ URL frontend จริงของคุณ
+const BACKEND_URL = `https://game-shop-web-api.onrender.com`; // URL ของ backend หลัง deploy
+const isProduction = true; // Render ใช้ HTTPS
 
 // ------------------- Session types -------------------
 declare module 'express-session' {
@@ -41,7 +41,7 @@ app.use(
     cookie: {
       maxAge: 1000 * 60 * 60, // 1 ชั่วโมง
       secure: isProduction,     // ต้อง true บน HTTPS
-      sameSite: isProduction ? 'none' : 'lax', // cross-site
+      sameSite: 'none',         // cross-site
       httpOnly: true
     }
   })
@@ -62,10 +62,10 @@ const upload = multer({ storage });
 
 // ------------------- MySQL Pool -------------------
 const db = mysql.createPool({
-  host: process.env.DB_HOST || '202.28.34.203',
-  user: process.env.DB_USER || 'mb68_66011212155',
-  password: process.env.DB_PASS || 'uKayQT6Ly2i(',
-  database: process.env.DB_NAME || 'mb68_66011212155',
+  host: '202.28.34.203',
+  user: 'mb68_66011212155',
+  password: 'uKayQT6Ly2i(',
+  database: 'mb68_66011212155',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
@@ -146,8 +146,7 @@ app.get('/me', authMiddleware, async (req: any, res) => {
 
     user.walletBalance = 0.98;
 
-    const host = isProduction ? process.env.BACKEND_URL : `http://localhost:${PORT}`;
-    user.profile_image = user.profile_image ? `${host}${user.profile_image}` : '/assets/default-avatar.png';
+    user.profile_image = user.profile_image ? `${BACKEND_URL}${user.profile_image}` : `${FRONTEND_URL}/assets/default-avatar.png`;
 
     res.json(user);
   } catch (err) {
