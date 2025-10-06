@@ -25,10 +25,13 @@ declare module 'express-session' {
 // ------------------- Middleware -------------------
 app.use(cors({
   origin: FRONTEND_URL,
-  credentials: true
+  credentials: true // ต้องเปิดเพื่อให้ cookie ส่งข้ามโดเมนได้
 }));
+
 app.use(bodyParser.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+app.set('trust proxy', 1); // สำคัญสำหรับ Render HTTPS
 
 app.use(
   session({
@@ -36,9 +39,9 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      maxAge: 1000 * 60 * 60,
-      secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
+      maxAge: 1000 * 60 * 60, // 1 ชั่วโมง
+      secure: isProduction,     // ต้อง true บน HTTPS
+      sameSite: isProduction ? 'none' : 'lax', // cross-site
       httpOnly: true
     }
   })
@@ -186,6 +189,6 @@ app.post('/logout', authMiddleware, (req: any, res) => {
 });
 
 // Start server
-app.listen(PORT, async () => {
+app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
