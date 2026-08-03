@@ -7,6 +7,9 @@ import session from 'express-session';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const app = express();
 const PORT = 3000;
@@ -62,10 +65,10 @@ const upload = multer({ storage });
 
 // ------------------- MySQL Pool -------------------
 const db = mysql.createPool({
-  host: '202.28.34.203',
-  user: 'mb68_66011212155',
-  password: '***REMOVED***',
-  database: 'mb68_66011212155',
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
